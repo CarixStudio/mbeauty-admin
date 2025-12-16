@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+        --brand-primary: #67645e;
+        --brand-accent: #d4a574;
+        --brand-light: #f1f0ed;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      
+      /* Dark Mode Global Styles */
+      .dark body {
+        background-color: #171717; /* Deep Charcoal */
+        color: #f3f4f6;
+        --brand-primary: #f3f4f6; /* Switch brand primary to light for contrast */
+        --brand-light: #2a2a2a;
+      }
+      
+      .dark .bg-white {
+        background-color: #262626;
+        border-color: #404040;
+      }
+      
+      .dark .text-gray-900 {
+        color: #f3f4f6;
+      }
+      
+      .dark .text-gray-800 {
+        color: #e5e7eb;
+      }
+      
+      .dark .text-gray-700 {
+        color: #d1d5db;
+      }
+      
+      .dark .text-gray-600 {
+        color: #9ca3af;
+      }
+      
+      .dark .text-gray-500 {
+        color: #9ca3af;
+      }
+      
+      .dark .border-gray-100, .dark .border-gray-200 {
+        border-color: #404040;
+      }
+      
+      .dark .bg-gray-50, .dark .bg-gray-100 {
+        background-color: #333333;
+      }
+      
+      .dark .hover\:bg-gray-50:hover {
+        background-color: #333333;
+      }
+
+      .glass-card {
+        background: rgba(255, 255, 255, 0.08);
+        
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+      }
+      .grid-pattern {
+        background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+      }
+
+      /* UI 5: Custom Themed Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f0ed;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #67645e; /* Brand Primary */
+        border-radius: 4px;
+        border: 2px solid #f1f0ed;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #d4a574; /* Brand Accent */
+      }
+
+      /* Dark Mode Scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #262626;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #555555;
+        border-color: #262626;
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #d4a574;
+      }
+      
+      .custom-scrollbar::-webkit-scrollbar-track {
+         background: transparent;
+      }
+
+      .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+      }
+      .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+      }
+
+      /* Global Input Visibility Fix for Dark Mode */
+      .dark input, .dark textarea, .dark select {
+        background-color: #333333 !important;
+        color: #f3f4f6 !important;
+        border-color: #555555 !important;
+      }
+      
+      .dark .bg-white input {
+         background-color: transparent !important;
+      }
+      
+      option {
+        background-color: white !important;
+        color: #1f2937 !important;
+      }
+      .dark option {
+        background-color: #333333 !important;
+        color: #f3f4f6 !important;
+      }
+      
+      /* Recharts Tooltip Fix */
+      .recharts-default-tooltip {
+        background-color: rgba(255, 255, 255, 0.96) !important;
+        border: 1px solid #ccc !important; 
+        color: #333 !important;
+      }
+      .dark .recharts-default-tooltip {
+        background-color: rgba(40, 40, 40, 0.96) !important;
+        border: 1px solid #555 !important;
+        color: #f3f4f6 !important;
+      }
