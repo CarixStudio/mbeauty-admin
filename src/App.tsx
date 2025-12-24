@@ -33,6 +33,8 @@ import { TooltipProvider } from './components/ui/Tooltip';
 import { useIdleTimeout } from './lib/useIdleTimeout';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { supabase } from './lib/supabase';
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
 
 interface NavState {
   page: string;
