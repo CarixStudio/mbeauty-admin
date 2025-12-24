@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { LoginForm } from './components/LoginForm';
 import { VisualPanel } from './components/VisualPanel';
@@ -25,9 +26,11 @@ import { SentimentAnalysisPage } from './pages/SentimentAnalysis';
 import { WaitlistPage } from './pages/Waitlist';
 import { ScheduledActionsPage } from './pages/ScheduledActions';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { IdleTimeoutModal } from './components/IdleTimeoutModal';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ConfirmProvider } from './components/ui/AlertDialog';
 import { TooltipProvider } from './components/ui/Tooltip';
+import { useIdleTimeout } from './lib/useIdleTimeout';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -50,6 +53,29 @@ export interface UserProfile {
   role: string;
   avatar: string;
 }
+
+// Idle Timeout Wrapper Component (15 min industry standard)
+const IdleTimeoutWrapper: React.FC<{ onLogout: () => void; children: React.ReactNode }> = ({ onLogout, children }) => {
+  const { showWarning, secondsRemaining, stayLoggedIn } = useIdleTimeout({
+    timeoutMinutes: 15,
+    warningSeconds: 60,
+    onTimeout: onLogout,
+    enabled: true
+  });
+
+  return (
+    <>
+      {children}
+      {showWarning && (
+        <IdleTimeoutModal
+          secondsRemaining={secondsRemaining}
+          onStayLoggedIn={stayLoggedIn}
+          onLogout={onLogout}
+        />
+      )}
+    </>
+  );
+};
 
 // Wrapper to provide toast context to AppContent
 const App = () => {
@@ -373,20 +399,22 @@ const AppContent = () => {
       )}
 
       {isAuthenticated ? (
-        <div className="animate-in fade-in duration-700">
-          <ErrorBoundary>
-            <Layout 
-              activePage={navState.page} 
-              onNavigate={handleNavigate}
-              onLogout={handleLogout}
-              currency={currency}
-              setCurrency={setCurrency}
-              userProfile={userProfile}
-            >
-              {renderPage()}
-            </Layout>
-          </ErrorBoundary>
-        </div>
+        <IdleTimeoutWrapper onLogout={handleLogout}>
+          <div className="animate-in fade-in duration-700">
+            <ErrorBoundary>
+              <Layout 
+                activePage={navState.page} 
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                currency={currency}
+                setCurrency={setCurrency}
+                userProfile={userProfile}
+              >
+                {renderPage()}
+              </Layout>
+            </ErrorBoundary>
+          </div>
+        </IdleTimeoutWrapper>
       ) : (
         /* Only render login if we aren't stuck checking auth */
         !isCheckingAuth && (

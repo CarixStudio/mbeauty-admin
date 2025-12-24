@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowLeft, Rocket, AlertTriangle, CheckCircle, User, Shield
 import { Input } from './ui/Input';
 import { Checkbox } from './ui/Checkbox';
 import { useToast } from './ui/Toast';
+import { MFAChallengeForm } from './MFAChallengeForm';
 import { TermsOfService } from '../pages/TermsOfService';
 import { PrivacyPolicy } from '../pages/PrivacyPolicy';
 import { supabase } from '../lib/supabase';
@@ -12,7 +13,7 @@ interface LoginFormProps {
   onLoginSuccess: () => void;
 }
 
-type ViewState = 'login' | 'signup' | 'signup_success' | 'forgot' | 'forgot_success' | 'terms' | 'privacy';
+type ViewState = 'login' | 'signup' | 'signup_success' | 'forgot' | 'forgot_success' | 'terms' | 'privacy' | 'mfa_challenge';
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const { addToast } = useToast();
@@ -26,6 +27,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
   // Password Strength State
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -66,10 +68,36 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if MFA is required
+        if (error.message?.includes('MFA') || error.message?.includes('factor')) {
+          // Get the MFA factor
+          const { data: factorsData } = await supabase.auth.mfa.listFactors();
+          if (factorsData?.totp && factorsData.totp.length > 0) {
+            const verifiedFactor = factorsData.totp.find(f => f.status === 'verified');
+            if (verifiedFactor) {
+              setMfaFactorId(verifiedFactor.id);
+              setView('mfa_challenge');
+              return;
+            }
+          }
+        }
+        throw error;
+      }
 
-      // The auth state listener in App.tsx will handle the redirect and profile check
-      // But we can trigger a success toast here
+      // Check if user has MFA factors enrolled
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      if (factorsData?.totp && factorsData.totp.length > 0) {
+        const verifiedFactor = factorsData.totp.find(f => f.status === 'verified');
+        if (verifiedFactor) {
+          // User has 2FA enabled, need to verify
+          setMfaFactorId(verifiedFactor.id);
+          setView('mfa_challenge');
+          return;
+        }
+      }
+
+      // No MFA, proceed with login
       addToast('Authenticated successfully', 'success');
       
     } catch (error: any) {
@@ -152,6 +180,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   // Render Sub-pages
   if (view === 'terms') return <TermsOfService onBack={() => setView('login')} />;
   if (view === 'privacy') return <PrivacyPolicy onBack={() => setView('login')} />;
+  
+  // MFA Challenge View
+  if (view === 'mfa_challenge' && mfaFactorId) {
+    return (
+      <MFAChallengeForm
+        factorId={mfaFactorId}
+        onSuccess={() => {
+          addToast('Authenticated successfully', 'success');
+          onLoginSuccess();
+        }}
+        onBack={() => {
+          setView('login');
+          setMfaFactorId(null);
+        }}
+      />
+    );
+  }
 
   if (view === 'forgot_success') {
     return (

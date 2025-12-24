@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { TwoFactorSetupModal } from '../components/TwoFactorSetupModal';
 import { 
   User, 
   Shield, 
@@ -13,7 +14,9 @@ import {
   Key,
   Mail,
   Smartphone,
-  Loader2
+  Loader2,
+  ShieldCheck,
+  ShieldOff
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ui/Toast';
@@ -42,6 +45,8 @@ export const UserSettingsPage: React.FC = () => {
   });
 
   const [twoFactor, setTwoFactor] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [isDisabling2FA, setIsDisabling2FA] = useState(false);
 
   // Fetch real data on mount
   useEffect(() => {
@@ -75,6 +80,16 @@ export const UserSettingsPage: React.FC = () => {
                         console.error("Error parsing preferences", e);
                     }
                 }
+            }
+
+            // Check MFA factors
+            const { data: factorsData } = await supabase.auth.mfa.listFactors();
+            if (factorsData?.totp && factorsData.totp.length > 0) {
+                // Check if any factor is verified
+                const hasVerifiedFactor = factorsData.totp.some(f => f.status === 'verified');
+                setTwoFactor(hasVerifiedFactor);
+            } else {
+                setTwoFactor(false);
             }
         } catch (error) {
             console.error(error);
@@ -112,6 +127,27 @@ export const UserSettingsPage: React.FC = () => {
       if (!supabase) return;
       await supabase.auth.signOut();
       window.location.href = '/';
+  };
+
+  const handleDisable2FA = async () => {
+      if (!supabase) return;
+      setIsDisabling2FA(true);
+      try {
+          const { data: factorsData } = await supabase.auth.mfa.listFactors();
+          if (factorsData?.totp && factorsData.totp.length > 0) {
+              // Unenroll all TOTP factors
+              for (const factor of factorsData.totp) {
+                  await supabase.auth.mfa.unenroll({ factorId: factor.id });
+              }
+          }
+          setTwoFactor(false);
+          addToast('Two-factor authentication disabled', 'success');
+      } catch (error: any) {
+          console.error('Disable 2FA error:', error);
+          addToast(error.message || 'Failed to disable 2FA', 'error');
+      } finally {
+          setIsDisabling2FA(false);
+      }
   };
 
   if (loading) {
@@ -191,6 +227,7 @@ export const UserSettingsPage: React.FC = () => {
                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
                            <input 
                               type="text" 
+                              aria-label="Full Name"
                               className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-[#333] text-gray-900 dark:text-white focus:ring-1 focus:ring-brand-accent outline-none" 
                               value={profile.name} 
                               onChange={e => setProfile({...profile, name: e.target.value})}
@@ -199,6 +236,7 @@ export const UserSettingsPage: React.FC = () => {
                         <div className="space-y-1">
                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
                            <input 
+                              aria-label="Email Address"
                               type="email" 
                               className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed" 
                               value={profile.email} 
@@ -250,22 +288,38 @@ export const UserSettingsPage: React.FC = () => {
                               </p>
                               {twoFactor ? (
                                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg w-fit">
-                                    <Shield size={18}/> 2FA is currently enabled
+                                    <ShieldCheck size={18}/> 2FA is currently enabled
                                  </div>
                               ) : (
-                                 <Button onClick={() => setTwoFactor(true)} title="Enable 2FA">
+                                 <Button onClick={() => setShow2FAModal(true)} title="Enable 2FA">
                                     <QrCode size={16} className="mr-2"/> Enable 2FA
                                  </Button>
                               )}
                            </div>
                            {twoFactor && (
-                              <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-900 dark:hover:bg-red-900/10" onClick={() => setTwoFactor(false)} title="Disable 2FA">
-                                 Disable
+                              <Button 
+                                variant="outline" 
+                                className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-900 dark:hover:bg-red-900/10" 
+                                onClick={handleDisable2FA} 
+                                title="Disable 2FA"
+                                isLoading={isDisabling2FA}
+                              >
+                                 <ShieldOff size={16} className="mr-2"/> Disable 2FA
                               </Button>
                            )}
                         </div>
                      </CardContent>
                   </Card>
+
+                  {/* 2FA Setup Modal */}
+                  <TwoFactorSetupModal
+                    isOpen={show2FAModal}
+                    onClose={() => setShow2FAModal(false)}
+                    onSuccess={() => {
+                      setTwoFactor(true);
+                      addToast('Two-factor authentication enabled!', 'success');
+                    }}
+                  />
                </div>
             )}
 
